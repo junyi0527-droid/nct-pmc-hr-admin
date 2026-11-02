@@ -62,3 +62,21 @@ def update_vehicle(
     db.commit()
     db.refresh(v)
     return v
+
+
+@router.delete("/{vehicle_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_vehicle(
+    vehicle_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_role("system_administrator", "hr_admin")),
+):
+    v = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if not v:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
+    if v.borrowings:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Vehicle cannot be deleted because it has borrowing history. Deactivate it instead.",
+        )
+    db.delete(v)
+    db.commit()

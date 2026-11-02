@@ -7,3 +7,10 @@ node_modules/
 dist/
 backend/uploads/
 .pytest_cache/
+database/mysql_data/
+database/mysql_run/
+database/mysqld_log/
+backend/*.sqlite3
+backend/*.sqlite3-shm
+backend/*.sqlite3-wal
+frontend/browser-qa.*/

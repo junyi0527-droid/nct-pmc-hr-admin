@@ -1,22 +1,20 @@
 const VARIANTS = {
-  default: 'bg-slate-100 text-slate-700',
-  success: 'bg-green-100 text-green-800',
-  warning: 'bg-amber-100 text-amber-800',
-  danger: 'bg-red-100 text-red-800',
-  info: 'bg-teal-100 text-teal-800',
-  pending: 'bg-amber-100 text-amber-700',
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-  active: 'bg-green-100 text-green-700',
-  inactive: 'bg-slate-100 text-slate-600',
-  expired: 'bg-red-100 text-red-700',
+  default: '',
+  success: 'tone-success',
+  warning: 'tone-warning',
+  danger: 'tone-danger',
+  info: 'tone-info',
+  pending: 'tone-warning',
+  approved: 'tone-success',
+  rejected: 'tone-danger',
+  active: 'tone-success',
+  inactive: '',
+  expired: 'tone-danger',
 }
 
-export default function Badge({ variant = 'default', className = '', children }) {
+export default function Badge({ variant = 'default', className = '', children, ...props }) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${VARIANTS[variant]} ${className}`}
-    >
+    <span className={`ui-badge ${VARIANTS[variant] || ''} ${className}`} {...props}>
       {children}
     </span>
   )

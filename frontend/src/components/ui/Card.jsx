@@ -1,26 +1,41 @@
-export default function Card({ className = '', children, ...props }) {
+export default function Card({ className = '', children, tilt3d = false, ...props }) {
   return (
     <div
-      className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}
-      {...props}
-    >
+      className={`ui-card ${tilt3d ? 'card-3d transform-3d' : ''} ${className}`}
+      {...props}>
       {children}
     </div>
   )
 }
 
-export function CardHeader({ className = '', children }) {
-  return <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>
+export function CardHeader({ className = '', children, ...props }) {
+  return (
+    <div className={`flex flex-col gap-1.5 p-5 sm:p-6 ${className}`} {...props}>
+      {children}
+    </div>
+  )
 }
 
-export function CardTitle({ className = '', children }) {
-  return <h3 className={`text-lg font-semibold text-slate-900 ${className}`}>{children}</h3>
+export function CardTitle({ className = '', children, ...props }) {
+  return (
+    <h2 className={`text-base font-semibold tracking-tight text-ink ${className}`} {...props}>
+      {children}
+    </h2>
+  )
 }
 
-export function CardContent({ className = '', children }) {
-  return <div className={`p-6 pt-0 ${className}`}>{children}</div>
+export function CardContent({ className = '', children, ...props }) {
+  return (
+    <div className={`p-5 pt-0 sm:p-6 sm:pt-0 ${className}`} {...props}>
+      {children}
+    </div>
+  )
 }
 
 export function CardFooter({ className = '', children }) {
-  return <div className={`flex items-center gap-2 p-6 pt-4 border-t border-slate-100 ${className}`}>{children}</div>
+  return (
+    <div className={`flex flex-wrap items-center gap-2 border-t border-line p-5 ${className}`}>
+      {children}
+    </div>
+  )
 }

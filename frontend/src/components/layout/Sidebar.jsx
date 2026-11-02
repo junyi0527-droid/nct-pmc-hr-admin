@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Fragment } from 'react'
+import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   FileText,
@@ -11,105 +11,114 @@ import {
   BarChart3,
   UserCog,
   Settings,
+  ShoppingCart,
+  WalletCards,
+  Shirt,
+  Wrench,
+  FolderOpen,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Calendar,
 } from 'lucide-react'
+import Dialog from '../ui/Dialog'
+import Button from '../ui/Button'
+import { useWorkflow } from '../../contexts/WorkflowContext'
 
-const NAV = [
-  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
-  { key: 'licence', label: 'Business Licence', icon: Building2, to: '/business-licence' },
-  { key: 'insurance', label: 'Vehicle Insurance', icon: FileCheck, to: '/vehicle-insurance' },
-  { key: 'borrowing', label: 'Vehicle Borrowing', icon: Car, to: '/vehicle-borrowing' },
-  { key: 'utility', label: 'Utility Bills', icon: CreditCard, to: '/utility-bills' },
-  { key: 'memo', label: 'Memo Approval', icon: FileText, to: '/memo' },
-  { key: 'approvals', label: 'Approvals', icon: ShieldAlert, to: '/approvals' },
-  { key: 'reports', label: 'Reports', icon: BarChart3, to: '/reports' },
-  { key: 'users', label: 'User Management', icon: UserCog, to: '/users' },
-  { key: 'settings', label: 'Settings', icon: Settings, to: '/settings' },
+export const NAV = [
+  { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
+  { label: 'Workflow Directory', icon: FileText, to: '/workflows' },
+  { label: 'Licences, MOF & CIDB', icon: Building2, to: '/business-licence' },
+  { label: 'Insurance & Road Tax', icon: FileCheck, to: '/vehicle-insurance' },
+  { label: 'Vehicle Borrowing', icon: Car, to: '/vehicle-borrowing' },
+  { label: 'Utility Bills', icon: CreditCard, to: '/utility-bills' },
+  { label: 'Purchasing', icon: ShoppingCart, to: '/purchase-requisitions' },
+  { label: 'Petty Cash', icon: WalletCards, to: '/petty-cash' },
+  { label: 'Uniforms & Inventory', icon: Shirt, to: '/uniforms' },
+  { label: 'Maintenance', icon: Wrench, to: '/maintenance' },
+  { label: 'Memo Approval', icon: FileText, to: '/memo' },
+  { label: 'Documents & E-Forms', icon: FolderOpen, to: '/documents' },
+  { label: 'Approvals', icon: ShieldAlert, to: '/approvals' },
+  { label: 'Payment Requests', icon: CreditCard, to: '/payments' },
+  { label: 'Finance Queue', icon: WalletCards, to: '/finance', finance: true },
+  { label: 'Reports', icon: BarChart3, to: '/reports' },
+  { label: 'Calendar', icon: Calendar, to: '/calendar' },
+  { label: 'User Management', icon: UserCog, to: '/users', admin: true },
+  { label: 'Settings', icon: Settings, to: '/settings' },
 ]
 
-export default function Sidebar({ collapsed, onToggle, user }) {
-  const navigate = useNavigate()
-  const active = navigate ? null : null
-
+export default function Sidebar({ collapsed, onToggle, user, logout, mobileOpen, onMobileClose }) {
+  const canManageUsers = ['admin', 'system_administrator'].includes(user?.role)
+  const { records } = useWorkflow()
+  const badgeCount = (to) => to === '/approvals' ? records.filter((r) => r.actions?.includes('approve')).length : to === '/utility-bills' ? records.filter((r) => ['electricity_bill', 'water_bill', 'telephone_bill', 'utility_bill'].includes(r.kind) && !['completed', 'cancelled', 'rejected'].includes(r.status)).length : to === '/memo' ? records.filter((r) => r.kind?.includes('memo') && r.actions?.includes('approve')).length : 0
+  const navigation = (compact = false, onNavigate) => (
+    <nav aria-label="Main navigation" className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
+      {NAV.filter((item) => (!item.admin || canManageUsers) && (!item.finance || ['system_administrator', 'hr_admin', 'finance'].includes(user?.role))).map(({ label, to, icon: Icon }) => (
+        <Fragment key={to}>
+        {!compact && ['/dashboard', '/business-licence', '/memo', '/reports'].includes(to) && <p className="workspace-nav-group">{{ '/dashboard': 'Overview', '/business-licence': 'Administration', '/memo': 'Approvals', '/reports': 'Insights' }[to]}</p>}
+        <NavLink
+          key={to}
+          to={to}
+          onClick={onNavigate}
+          aria-label={compact ? label : undefined}
+          title={compact ? label : undefined}
+          className={({ isActive }) =>
+            `flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${compact ? 'justify-center' : ''} ${isActive ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-subtle hover:text-ink'}`
+          }
+        >
+          <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+          {!compact && <span>{label}</span>}
+          {badgeCount(to) > 0 && <span className={compact ? 'workspace-nav-dot' : 'workspace-nav-count'} aria-label={`${badgeCount(to)} pending`}>{compact ? '' : badgeCount(to)}</span>}
+        </NavLink>
+        </Fragment>
+      ))}
+    </nav>
+  )
   return (
     <>
       <aside
-        className={`fixed inset-y-0 left-0 z-40 transition-all duration-300 ease-in-out flex flex-col ${
-          collapsed ? 'w-16' : 'w-64'
-        } border-r border-slate-200 bg-white`}
+        className={`nct-workspace-sidebar fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-line bg-surface transition-[width] duration-200 md:flex ${collapsed ? 'w-[78px]' : 'w-[264px]'}`}
       >
-        {/* Brand */}
-        <div className="flex items-center gap-2 px-3 h-14 border-b border-slate-200 bg-navy-900 text-white">
-          {!collapsed && (
-            <span className="font-bold text-lg tracking-tight">NCT PMC</span>
-          )}
-          {collapsed && <span className="font-bold text-lg tracking-tight">NP</span>}
+        <div className="nct-workspace-sidebar-brand flex h-20 shrink-0 items-center justify-center bg-[#1e3a5f] px-3">
+          <img className="workspace-official-logo" src="/assets/nct-official-logo.png" alt="NCT Alliance" width="50" height="60" />
+          {!collapsed && <span className="workspace-brand-copy"><strong>NCT ALLIANCE</strong><small>HR Administration</small></span>}
         </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
-          {NAV.map((item) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.key}
-                onClick={() => navigate(item.to)}
-                className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                  typeof window !== 'undefined' && window.location.pathname === item.to
-                    ? 'bg-teal-50 text-teal-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <Icon className={`w-5 h-5 ${!collapsed ? 'shrink-0' : 'mx-auto'}`} />
-                {!collapsed && <span>{item.label}</span>}
-              </button>
-            )
-          })}
-        </nav>
-
-        {/* User + Logout (bottom) */}
-        <div className="px-3 py-4 border-t border-slate-200">
-          <button
-            onClick={() => navigate('/settings')}
-            className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900`}
-          >
-            <Settings className={`w-5 h-5 ${!collapsed ? 'shrink-0' : 'mx-auto'}`} />
-            {!collapsed && <span>Settings</span>}
-          </button>
-          <button
-            onClick={() => {
-              localStorage.removeItem('nct_hr_token')
-              window.location.href = '/login'
-            }}
-            className={`mt-2 flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors text-red-600 hover:bg-red-50 hover:text-red-700`}
-          >
-            <LogOut className={`w-5 h-5 ${!collapsed ? 'shrink-0' : 'mx-auto'}`} />
-            {!collapsed && <span>Logout</span>}
-          </button>
-        </div>
-
-        {/* Collapse toggle (only when expanded) */}
-        {!collapsed && (
-          <button
+        {navigation(collapsed)}
+        <div className="shrink-0 space-y-1 border-t border-line p-3">
+          {!collapsed && <div className="workspace-sidebar-user"><span>{user?.full_name?.split(' ').map((part) => part[0]).slice(0, 2).join('') || 'HR'}</span><div><strong>{user?.full_name}</strong><small>{user?.email || 'HR Administration'}</small></div></div>}
+          <Button
+            variant="ghost"
+            className="w-full"
             onClick={onToggle}
-            className="absolute right-0 top-1/2 -mt-6 mr-2 p-2 text-slate-400 hover:text-slate-700"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
           >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        )}
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <>
+                <PanelLeftClose className="h-4 w-4" />
+                <span>Collapse sidebar</span>
+              </>
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full text-[var(--app-danger)]"
+            onClick={logout}
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+            {!collapsed && 'Sign out'}
+          </Button>
+        </div>
       </aside>
-
-      {/* Collapse toggle (only when collapsed) */}
-      {collapsed && (
-        <button
-          onClick={onToggle}
-          className="fixed left-16 top-6 z-50 p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      )}
+      <Dialog open={mobileOpen} onClose={onMobileClose} title="NCT PMC navigation" navigation>
+        {navigation(false, onMobileClose)}
+        <Button variant="ghost" className="mt-3 w-full" onClick={logout}>
+          <LogOut className="h-4 w-4" /> Sign out
+        </Button>
+      </Dialog>
     </>
   )
 }

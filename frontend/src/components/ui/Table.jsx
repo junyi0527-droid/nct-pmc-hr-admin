@@ -1,7 +1,12 @@
 export default function Table({ className = '', children, ...props }) {
   return (
-    <div className={`overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm ${className}`}>
-      <table className="w-full text-sm text-left" {...props}>
+    <div
+      className={`ui-scroll rounded-lg border border-line bg-surface ${className}`}
+      tabIndex={0}
+      role="region"
+      aria-label={props['aria-label'] || 'Scrollable data table'}
+    >
+      <table className="w-full text-left text-sm" {...props}>
         {children}
       </table>
     </div>
@@ -13,7 +18,7 @@ export function TableHeader({ className = '', children }) {
 }
 
 export function TableRow({ className = '', children }) {
-  return <tr className={`border-b border-slate-100 ${className}`}>{children}</tr>
+  return <tr className={`border-b border-line last:border-b-0 ${className}`}>{children}</tr>
 }
 
 export function TableHead({ className = '', children }) {

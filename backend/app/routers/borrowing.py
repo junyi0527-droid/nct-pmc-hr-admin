@@ -3,13 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, BorrowingRequest
+from app.models import User, BorrowingRequest, AuditLog
 from app.routers.deps import get_current_active_user, require_role
 from app.schemas.borrowing import (
     BorrowingRequestCreate,
     BorrowingRequestOut,
     BorrowingRequestUpdate,
     BorrowingAction,
+    BorrowingInspection,
     VehicleMini,
 )
 from app.services.borrowing_service import (
@@ -32,7 +33,9 @@ def _to_out(req: BorrowingRequest) -> BorrowingRequestOut:
         vehicle_id=req.vehicle_id,
         purpose=req.purpose,
         borrow_date=req.borrow_date,
+        borrow_time=req.borrow_time,
         return_date=req.return_date,
+        return_time=req.return_time,
         requested_by=req.requested_by,
         status=req.status,
         approved_by=req.approved_by,
@@ -42,6 +45,12 @@ def _to_out(req: BorrowingRequest) -> BorrowingRequestOut:
         actual_return_date=req.actual_return_date,
         is_overdue=req.is_overdue,
         notes=req.notes,
+        driver_eligibility_notes=req.driver_eligibility_notes,
+        driver_verified_by=req.driver_verified_by,
+        collection_condition=req.collection_condition,
+        return_condition=req.return_condition,
+        keys_returned=req.keys_returned,
+        issues=req.issues,
         created_at=req.created_at,
         vehicle=VehicleMini(
             id=req.vehicle.id,
@@ -62,7 +71,8 @@ def list_borrowing(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    requested_by = current_user.id if my else None
+    role = current_user.role.name
+    requested_by = current_user.id if my or role not in {"system_administrator", "hr_admin", "authorised_approver"} else None
     return [_to_out(r) for r in list_requests(db, status=status, vehicle_id=vehicle_id, requested_by=requested_by)]
 
 
@@ -120,15 +130,52 @@ def act_on_borrowing(
     req_id: int,
     action: BorrowingAction,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("system_administrator", "hr_admin", "authorised_approver")),
+    current_user: User = Depends(get_current_active_user),
 ):
     req = get_request(db, req_id)
     if not req:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+    manager = current_user.role.name in {"system_administrator", "hr_admin", "authorised_approver"}
+    if not manager and not (action.action == "cancel" and req.requested_by == current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorised for this booking action")
+    if action.action == "approve" and req.requested_by == current_user.id:
+        raise HTTPException(status_code=403, detail="Ask another authorised person to approve your booking")
     try:
         req = action_request(db, req, action, current_user.id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    return _to_out(req)
+
+
+@router.post("/{req_id}/inspection", response_model=BorrowingRequestOut)
+def inspect_booking(req_id: int, data: BorrowingInspection, db: Session = Depends(get_db),
+                    current_user: User = Depends(require_role("system_administrator", "hr_admin"))):
+    req = db.query(BorrowingRequest).filter_by(id=req_id).with_for_update().first()
+    if not req:
+        raise HTTPException(404, "Request not found")
+    try:
+        if data.stage == "driver":
+            if req.status != "pending":
+                raise ValueError("Driver verification must be recorded before approval")
+            req.driver_eligibility_notes = data.notes
+            req.driver_verified_by = current_user.id
+            db.commit()
+        elif data.stage == "collection":
+            req.collection_condition = data.notes
+            req = record_collection(db, req, current_user.id)
+        else:
+            if not data.actual_return_date:
+                raise ValueError("Enter the actual return date")
+            req.return_condition = data.notes
+            req.keys_returned = data.keys_returned
+            req.issues = data.issues or None
+            req = record_return(db, req, data.actual_return_date.isoformat(), data.issues or None)
+        db.add(AuditLog(user_id=current_user.id, action="vehicle_inspection_" + data.stage,
+            entity_type="borrowing", entity_id=str(req.id), details=data.notes + ("; Issues: " + data.issues if data.issues else "")))
+        db.commit()
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(400, str(exc))
     return _to_out(req)
 
 

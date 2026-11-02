@@ -29,6 +29,8 @@ def authenticate_user(db, email: str, password: str):
         return None
     if not verify_password(password, user.password_hash):
         return None
+    if not user.is_active:
+        return None
     return user
 
 

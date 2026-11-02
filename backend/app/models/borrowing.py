@@ -14,7 +14,9 @@ class BorrowingRequest(Base, TimestampMixin):
     requested_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     purpose: Mapped[str] = mapped_column(Text, nullable=False)
     borrow_date: Mapped[str] = mapped_column(String(16), nullable=False)  # YYYY-MM-DD
+    borrow_time: Mapped[str] = mapped_column(String(5), nullable=False, default="09:00")  # HH:MM
     return_date: Mapped[str] = mapped_column(String(16), nullable=False)  # YYYY-MM-DD
+    return_time: Mapped[str] = mapped_column(String(5), nullable=False, default="17:00")  # HH:MM
     status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)  # pending, approved, rejected, completed, cancelled
     approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
@@ -23,6 +25,12 @@ class BorrowingRequest(Base, TimestampMixin):
     actual_return_date: Mapped[str | None] = mapped_column(String(16), nullable=True)
     is_overdue: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    driver_eligibility_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    driver_verified_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    collection_condition: Mapped[str | None] = mapped_column(Text, nullable=True)
+    return_condition: Mapped[str | None] = mapped_column(Text, nullable=True)
+    keys_returned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    issues: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     vehicle: Mapped["Vehicle"] = relationship("Vehicle", back_populates="borrowings")
     requester: Mapped["User"] = relationship("User", foreign_keys=[requested_by])

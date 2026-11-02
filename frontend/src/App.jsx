@@ -1,29 +1,56 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import AppShell from './pages/AppShell'
+import { PublicLayout, ProtectedLayout } from './pages/AppShell'
 import VehicleBorrowingList from './pages/vehicle-borrowing/List'
 import VehicleBorrowingRequest from './pages/vehicle-borrowing/Request'
-import PlaceholderPage from './pages/Placeholder'
+import { lazy } from 'react'
+import Appearance from './pages/Appearance'
+import WorkflowPage from './pages/WorkflowPage'
+import CalendarPage from './pages/Calendar'
+const WorkflowRecord = lazy(() => import('./pages/WorkflowRecord'))
+import WorkflowDirectory from './pages/WorkflowDirectory'
+import OperationsDashboard from './pages/OperationsDashboard'
+const InventoryPage = lazy(() => import('./pages/InventoryPage'))
+const CashPage = lazy(() => import('./pages/CashPage'))
+const UsersPage = lazy(() => import('./pages/UsersPage'))
 
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <AppShell />,
+    element: <PublicLayout />,
+    children: [{ path: 'login', element: <Login /> }],
+  },
+  {
+    element: <ProtectedLayout />,
     children: [
-      { path: 'login', element: <Login /> },
-      { path: 'dashboard', element: <Dashboard /> },
-      { path: 'business-licence', element: <PlaceholderPage module="Business Licence Renewal" /> },
-      { path: 'vehicle-insurance', element: <PlaceholderPage module="Vehicle Insurance Renewal" /> },
+      { path: '/', element: <Navigate to="/dashboard" replace /> },
+      { path: 'dashboard', element: <OperationsDashboard /> },
+      { path: 'workflows', element: <WorkflowDirectory /> },
+      { path: 'records/:id', element: <WorkflowRecord /> },
+      { path: 'business-licence', element: <WorkflowPage key="licences" group="licences" /> },
+      { path: 'vehicle-insurance', element: <WorkflowPage key="insurance" group="insurance" /> },
       { path: 'vehicle-borrowing', element: <VehicleBorrowingList /> },
       { path: 'vehicle-borrowing/request', element: <VehicleBorrowingRequest /> },
       { path: 'vehicle-borrowing/request/:id', element: <VehicleBorrowingRequest /> },
-      { path: 'utility-bills', element: <PlaceholderPage module="Utility Bill Management" /> },
-      { path: 'memo', element: <PlaceholderPage module="Memo Preparation & Approval" /> },
-      { path: 'approvals', element: <PlaceholderPage module="Approvals" /> },
-      { path: 'reports', element: <PlaceholderPage module="Reports" /> },
-      { path: 'users', element: <PlaceholderPage module="User Management" /> },
-      { path: 'settings', element: <PlaceholderPage module="Settings" /> },
+      { path: 'utility-bills', element: <WorkflowPage key="utilities" group="utilities" /> },
+      {
+        path: 'purchase-requisitions',
+        element: <WorkflowPage key="purchasing" group="purchasing" />,
+      },
+      { path: 'petty-cash', element: <CashPage /> },
+      { path: 'uniforms', element: <InventoryPage /> },
+      {
+        path: 'maintenance',
+        element: <WorkflowPage key="maintenance" group="maintenance" />,
+      },
+      { path: 'memo', element: <WorkflowPage key="memos" group="memos" /> },
+      { path: 'documents', element: <WorkflowPage key="documents" group="documents" /> },
+      { path: 'approvals', element: <WorkflowPage key="approvals" mode="approvals" /> },
+      { path: 'finance', element: <WorkflowPage key="finance" mode="finance" /> },
+      { path: 'payments', element: <WorkflowPage key="payments" group="finance" /> },
+      { path: 'reports', element: <OperationsDashboard report /> },
+      { path: 'users', element: <UsersPage /> },
+      { path: 'settings', element: <Appearance /> },
+      { path: 'calendar', element: <CalendarPage /> },
     ],
   },
 ])

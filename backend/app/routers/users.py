@@ -44,6 +44,11 @@ def create_user_endpoint(
     return _user_out(user)
 
 
+@router.get("/roles", response_model=list[dict])
+def list_roles(db: Session = Depends(get_db), _: User = Depends(require_role("system_administrator"))):
+    return [{"name": role.name, "description": role.description} for role in db.query(Role).order_by(Role.name)]
+
+
 @router.get("/{user_id}", response_model=UserOut)
 def get_user(
     user_id: int,
@@ -61,15 +66,13 @@ def update_user_endpoint(
     user_id: int,
     user_in: UserUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_role("system_administrator")),
+    current_user: User = Depends(require_role("system_administrator")),
 ):
     user = get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    # Prevent deactivating yourself.
-    if user_in.is_active is False:
-        # current_user not injected here; keep simple and allow admin action.
-        pass
+    if user.id == current_user.id and (user_in.is_active is False or (user_in.role_name and user_in.role_name != "system_administrator")):
+        raise HTTPException(400, "Another administrator must change your own access")
     try:
         user = update_user(db, user, user_in)
     except ValueError as exc:

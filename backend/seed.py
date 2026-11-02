@@ -9,6 +9,7 @@ from app.security import hash_password
 settings = get_settings()
 
 ROLES = [
+    ("employee", "Employee; submits requests and reads their own records and distributed memos."),
     ("system_administrator", "Full system access; manages users and all modules."),
     ("hr_admin", "HR Admin; manages HR admin modules and logs finance copies."),
     ("finance", "Finance / Accounts; processes utility bill payments per SOP."),
@@ -41,6 +42,12 @@ def main():
         for email, full_name, role_name in TEST_USERS:
             user = db.query(User).filter(User.email == email).first()
             if user:
+                # Keep local demo accounts usable after the seed password changes.
+                # Never overwrite real account passwords in non-development environments.
+                if settings.app_env == "development" and settings.seed_default_password:
+                    user.password_hash = hash_password(settings.seed_default_password)
+                    user.is_active = True
+                    db.commit()
                 print(f"User exists: {email}")
                 continue
             role = db.query(Role).filter(Role.name == role_name).first()
